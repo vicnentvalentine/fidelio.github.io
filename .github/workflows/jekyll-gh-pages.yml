@@ -1,0 +1,493 @@
+@ -0,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Book with Clickable Arrows</title>
+  <style>
+    body {
+      margin: 0;
+      background: #3e2f23;
+      font-family: 'Georgia', serif;
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      width: 200px;
+      background-color: #5c4433;
+      color: #fff;
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+    }
+
+    .sidebar h2 {
+      margin-top: 0;
+      font-size: 20px;
+      border-bottom: 1px solid #fff;
+    }
+
+    .sidebar ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    .sidebar li {
+      margin: 8px 0;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    .book-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      background: url('https://static.vecteezy.com/system/resources/thumbnails/049/020/129/small/antique-open-book-with-blank-pages-on-vintage-background-for-copy-space-photo.jpg') center center no-repeat;
+      background-size: 60% auto;
+    }
+
+    .book {
+      display: flex;
+      width: 800px;
+      height: 500px;
+      box-shadow: 0 0 40px rgba(0,0,0,0.5);
+      border: 2px solid #5c4433;
+      background: url('https://www.transparenttextures.com/patterns/paper-fibers.png');
+      background-color: #fdf6e3;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* VINTAGE PAGE STYLE WITH EXAGGERATED CURLED EDGES */
+    .page {
+      flex: 1;
+      padding: 30px;
+      box-sizing: border-box;
+      border-right: 1px solid #d2b48c;
+      overflow: hidden; /* remove scrollbars for normal pages */
+      background-color: #f5e6c4;
+
+      background-image: 
+        url('https://www.transparenttextures.com/patterns/old-mathematics.png'),
+        radial-gradient(circle at top left, rgba(230,200,160,0.25) 0%, transparent 50%),
+        radial-gradient(circle at bottom right, rgba(220,180,140,0.15) 0%, transparent 50%);
+      background-repeat: repeat, no-repeat, no-repeat;
+
+      /* exaggerated shadows for curled effect */
+      box-shadow: inset 0 0 60px rgba(0,0,0,0.25),
+                  inset -30px -30px 60px rgba(0,0,0,0.1),
+                  inset 30px 30px 60px rgba(0,0,0,0.1);
+
+      border-radius: 12px;
+      position: relative;
+    }
+
+    .page:last-child {
+      border-right: none;
+    }
+
+    /* exaggerated folded corners */
+    .page::before, .page::after {
+      content: '';
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: rgba(0,0,0,0.08);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .page::before {
+      top: 0;
+      left: 0;
+      border-top-left-radius: 20px;
+      transform: rotate(-25deg);
+      box-shadow: -5px 5px 15px rgba(0,0,0,0.3);
+    }
+
+    .page::after {
+      bottom: 0;
+      right: 0;
+      border-bottom-right-radius: 20px;
+      transform: rotate(25deg);
+      box-shadow: 5px -5px 15px rgba(0,0,0,0.3);
+    }
+
+    .page h1, .page h2, .page p {
+      color: #4b3b2a;
+      margin: 0 0 10px 0;
+    }
+
+    /* ---------- NEW: scrollable container used only inside page 20 ---------- */
+    .scrollable {
+      max-height: 360px;    /* adjust height to your taste */
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 8px;   /* prevents content hitting the scrollbar */
+      box-sizing: border-box;
+      line-height: 1.5;
+    }
+    /* optional: slightly darker background for the scroll area to improve contrast */
+    .scrollable p { margin: 0 0 10px 0; }
+
+    .nav-indicator {
+      position: absolute;
+      bottom: 10px;
+      right: 20px;
+      color: #fff;
+      font-size: 14px;
+      z-index: 2;
+    }
+
+    .arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 40px;
+      color: #fff;
+      background: rgba(0, 0, 0, 0.3);
+      border: none;
+      cursor: pointer;
+      padding: 10px;
+      z-index: 2;
+    }
+
+    .arrow:hover {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    .arrow.left {
+      left: 10px;
+    }
+
+    .arrow.right {
+      right: 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <h2>Bookmarks</h2>
+    <ul>
+      <li
+      <li onclick="goToPage(2)">NPCs</li>
+      <li onclick="goToPage(18)">Lore Arcs</li>
+      <li>Chapter 3</li>
+      <li onclick="goToPage(38)">Bounty Board</li> <!-- NEW BOOKMARK -->
+    </ul>
+  </div>
+
+  <div class="book-container">
+    <button class="arrow left" onclick="flipPage('prev')">◀</button>
+    <div class="book">
+      <div class="page" id="leftPage"></div>
+      <div class="page" id="rightPage"></div>
+    </div>
+    <button class="arrow right" onclick="flipPage('next')">▶</button>
+    <div class="nav-indicator" id="navIndicator">Page 1–2</div>
+  </div>
+
+  <script>
+    const totalPages = 40;
+    let currentPageIndex = 0;
+    const pages = [
+      `<h1 style="text-align: center;"> London's Exorcism Lore Journal</h1>
+       <h2  style="text-align: center;"> - NPCS, PD Info, and more can be found using the bookmarks - </h2>
+       <img src="npcs/Screenshot_4.png" alt="NPC Screenshot" style="width:80%; margin-top:5px; margin-	left:15px;">`,
+      `<h2>Directory</h2><p>-NPCs can be found on pages 3-11- <br> -Lore information/Arcs will be found on pages 	12-24-</p>`,
+      `<h2>NPCs</h2><p>You will find all known NPCs here, along with a picture, their description, affiliations, 	and threat level</p>`,
+      `<h2>Ancient Ice Being</h2>
+       <p><strong>Description:</strong> Appeared in PD 11/06/25, found in the city and was hostile. After a lengthy battle against Grade 4 sorcerers, it retreated to the Ice Temple atop the mountain. It took sorcerer London Vue and made him drink a vial of blood, turning him into a half-blooded species currently unknown.
+       <br><strong>Affiliation:</strong> Currently unknown.
+       <br><strong>Threat Level:</strong> ★ ★ ★ ★ ☆</p>
+       <img src="npcs/Screenshot_11.png" alt="NPC Screenshot" style="width:50%; margin-top:10px;">`,
+      `<h2>Cain</h2><p><strong> Description: </strong> High ranking Sorcerer at JJT. Does not appear in the Sorcerers' books of fate for an unknown reason reason. Knows of different languages, owns a room filled with cursed tools.<br> <strong> Affiliation: </strong>High Rank at JJT, friendly  <br> <strong>Technique: </strong> ???/Turning things into cursed objects <br> <strong> Rating: ★ ★ ★ ★ ★</p>
+       <img src="npcs/Screenshot_2.png" alt="Cain Screenshot" style="width:50%; margin-top:10px;">`,
+      `<h2>Kiso</h2><p><strong> Description: </strong> A bartender on the island, learned that he had the potential to carry an axe that helped defeat the Ice Temple, was able to pick it up when most sorcerers were not. Wields cursed energy, a lot about him is unknown. <br> <strong> Affiliation: </strong> ???/friendly <br> <strong> Technique: </strong> ??? <br> <strong> Threat Level: </strong>  ☆ ☆ ☆ ☆ ☆ </p>
+<img src="npcs/Screenshot_3.png" alt="Kiso Screenshot" style="width:50%; margin-top:10px;">`,
+      `<h2>Guitar Hobo</h2><p><strong> Description: </strong> Found in the city and was found to have an affinity for playing music with a guitar, but can play other instruments as well. His music has an amplifying effect on our speed strength, and it even purified the sorcerers cursed energy who listened to his music. Was given his guitar by a "friendly ghost" named "Beetroot." Was recruited by JJT and he had been fighting off curses before joining the academy. His best song technique was said to raise people from the dead but he said he's still working on it. Has other rhythms as well that can do other things... more is to be learned. <br> <strong> 	Technique: </strong> Music <br> <strong> Affiliation: </strong> JJT/very friendly <br> <strong> Rating: </strong>  	★ ★ ★ ★ ☆ </p>
+ <img src="npcs/Screenshot_5.png" alt="Purification" style="width:50%; margin-top:10px;">`,
+      `<h2>Page 8</h2><p>This is the content of page 8.</p>`,
+      `<h2>Page 9</h2><p>This is the content of page 9.</p>`,
+      `<h2>Page 10</h2><p>This is the content of page 10.</p>`,
+      `<h2>Page 11</h2><p>Placeholder content for page 11.</p>`,
+      `<h2>Page 12</h2><p>Placeholder content for page 12.</p>`,
+      `<h2>Page 13</h2><p>Placeholder content for page 13.</p>`,
+      `<h2>Page 14</h2><p>Placeholder content for page 14.</p>`,
+      `<h2>Page 15</h2><p>Placeholder content for page 15.</p>`,
+      `<h2>Page 16</h2><p>Placeholder content for page 16.</p>`,
+      `<h2>Page 17</h2><p>Placeholder content for page 17.</p>`,
+      `<h2>Page 18</h2><p>Placeholder content for page 18.</p>`,
+      `<h2>Lore Arcs/Info</h2><p>Here you will find information and theories on ongoing and past lore arcs</p>`,
+      /* ------------------- PAGE 20: long text wrapped in .scrollable ------------------- */
+      `<div class="scrollable"><h2>Current Arc <br> Books of Fate</h2><p>
+Dialogue Transcript from PDs 11/13-11/14/25 <br><br>
+Thoughts, imaginations, these are often dismissed as fleeting, incorporeal things - whispers of the mind that die unheard. 
+<br>
+<br>
+
+"Yet if they truly held no power, why do stories written in ink shape the hearts of those around us, and the very world itself?"
+
+<br><br>
+
+
+Perhaps imagination is the first form of reality, rand all else merely follows.
+
+<br>
+<br>
+
+The line between thought and matter grows thinner each passing year, what began as imagination has become manifestation."
+
+<br><br>
+
+
+Words etched in; ink, blood, or even carved into rock. Popular and forgotten books alike now walk amongg us, with thoughts of their own.
+<br>
+<br>
+
+
+Perhaps the curse was never the energy we wield, perhaps it was belief.
+<br><br>
+
+
+
+If a single thought can birth a curse, what of billions?
+
+<br><br>
+
+
+Somewhere, between belief and madness, lies the truth, - the world we walk in is a book we keep rewriting, one that changes with every passing action we take.
+<br>
+
+<br>
+
+The sorcerers would glance above, a shimmering white book would descend upon each of them, resting firmly in their hands.
+
+<br><br>
+
+
+The books would flutter, their pages turning as if they had a mind of their own, opening up onto the first chapter, transcribed onto the pages would be what had happened mere moments ago.
+
+<br><br>
+
+
+The sorcerers would flip through the previous pages, everything from their birth to the current time would be written - every secret, every shame, every moment of weakness laid bare in front of their eyes.
+
+<br><br>
+
+
+The sorcerers would continue reading, every moment, every second of their life would be meticulously documented by forces unseen, memories long forgotten would resurface as their eyes would lay upon the pages.
+
+<br><br>
+
+
+The sorcerers would halt, flipping through the pages towards the end - pages that would be blank, except for they very last one.
+
+<br>
+<br>
+
+A single thing would be written upon the final page. "This is the story of a fallen world, one that has descended into corruption. The End."
+<br>
+<br>
+
+
+A story told enough time begins to believe itself, imposing itself upon the world. The characters within grow restless in their inked prisons, and the world bends to make them real, consequences be damned.
+<br>
+<br>
+
+
+We humans, are but the words upon its pages, unaware of the hand that writes us.
+
+<br><br>
+
+
+Imagination is neither light nor dark, good nor evil, it is simply a reflection of what, of who, we are.
+
+<br><br>
+
+
+There once was a man who tried to write the perfect story, his very soul bleeding upon the words he had written, this nameless author has been lost to time and yet, the ink laid upon the pages would reform the world.
+
+<br><br>
+
+
+Though he may have written the story, there came a point where the Story began to write itself.
+
+<br><br>
+
+
+All it takes is a tear... and what once was only imagined begins to crawl through the tears seeping into reality itself.
+
+<br><br>
+
+
+The books would shimmer, dissolving into thin particles of light, entering the Sorcerers mind, they could feel they can be recalled at any time.
+<br>
+
+<br>
+
+Every curse born of hatred still echoes that single act - the moment man learned to make his thoughts into weapons.
+
+<br><br>
+
+
+The first sin was not murder itself, it was belief, belief that one's will could outweigh another's existence. The moment that thought took shape, reality learned to bend.
+<br>
+
+<br>
+
+We all carry a fragment of that ancient defiance, the very urge to define right and wrong with our own hands.
+
+<br><br>
+
+
+The world itself trembles at such arrogance, for it remembers the first to do so.
+<br>
+<br>
+
+
+For if energy can give birth to thought, and thought can give birth to intelligent beings, what of the world? Is the world itself alive?
+<br><br>
+
+
+The Sorcerers would read it, their minds attempting to process what is written - the words being formed of a language they had not seen before
+<br>
+<br>
+
+Unbeknownst to the Sorcerers the paragraph they had received would differ between them, the words forming different shapes and patterns with some similarities 
+<br>
+
+The Sorcerers would notice the phrase would seem to flow, where one would end the other would seem to pick up
+<br><br>
+
+
+The sorcerers would look for books, some coming close but not yet finding one that would be a precise match, the search in the library would continue
+<br><br>
+
+
+"Theory of Creation : Ancient Languages."
+<br>
+<br>
+
+The Sorcerers would translate the phrases, their meaning not making much sense, perhaps ordering them would be the right move
+<br><br>
+
+
+Trace the tremor in reality, and you'll find the hand that shaped it.
+<br><br>
+
+
+Every altered horizon hides a signature for those who know where to look. 
+<br>
+<br>
+
+Creation bends only for those who understand the silence between moments.
+<br><br>
+
+
+If a thought feels heavier than it should, someone already has carved it into truth.
+<br>
+<br>
+
+Follow the distortions, where the world forgets itself, its author is near.
+<br><br>
+
+
+To change what is, touch the seam where possibility leaks through.
+<br><br>
+
+
+The sorcerers within the arena would feel their book churn - from the books they would feel, anger?
+<br><br>
+
+
+They would feel as if something had gone against the book, as if someone had forcefully changed a story that was predestined to happen.
+<br>
+<br>
+
+Something, or someone, had gone against the Author, sowing changes unseen into the story until it was too late.
+<br>
+<br>
+
+The sorcerers would grow slightly faint, memories of their past lives flashing through their mind, they would feel it - these lives were meant to be real, they were not meant to be an illusion, but someone had changed this.
+<br>
+<br>
+
+Those deaths, they were meant to be permanent, the course of those lives changed forever.
+<br>
+<br>
+
+The sorcerers would read upon into their books, noticing stories of their past lives seeming to be strangely fabricated?
+<br>
+<br>
+
+It would feel as if those lives were not meant to be lived the way they were, as if Fate had something else in store. 
+<br>
+<br>
+
+As some Sorcerers would continue reading their books, they would notice something amiss, a small detail missing from each of their books - that detail being the same 
+<br>
+<br>
+
+The Sorcerers would continue reading the book, that faint wrongness increasing as they would notice that it was not something missing, but someone. (eventually found out that the person missing in the book is Cain but for unknown reasons, however he is alive and still part of the academy)
+<br>
+
+A single word would write itself upon the book, "Irregularis"</p></div>`,
+      `<h2>Theories and Interpretations</h2><p>Below will be all theories and interpretations of lore thus far</p>`,
+      `<h2>Page 22</h2><p>Placeholder content for page 22.</p>`,
+      `<h2>Page 23</h2><p>Placeholder content for page 23.</p>`,
+      `<h2>Page 24</h2><p>Placeholder content for page 24.</p>`,
+      `<h2>Page 25</h2><p>Placeholder content for page 25.</p>`,
+      `<h2>Page 26</h2><p>Placeholder content for page 26.</p>`,
+      `<h2>Page 27</h2><p>Placeholder content for page 27.</p>`,
+      `<h2>Page 28</h2><p>Placeholder content for page 28.</p>`,
+      `<h2>Page 29</h2><p>Placeholder content for page 29.</p>`,
+      `<h2>Page 30</h2><p>Placeholder content for page 30.</p>`,
+      `<h2>Page 31</h2><p>Placeholder content for page 31.</p>`,
+      `<h2>Page 32</h2><p>Placeholder content for page 32.</p>`,
+      `<h2>Page 33</h2><p>Placeholder content for page 33.</p>`,
+      `<h2>Page 34</h2><p>Placeholder content for page 34.</p>`,
+      `<h2>Page 35</h2><p>Placeholder content for page 35.</p>`,
+      `<h2>Page 36</h2><p>Placeholder content for page 36.</p>`,
+      `<h2>Page 37</h2><p>Placeholder content for page 37.</p>`,
+      `<h2>Page 38</h2><p>Placeholder content for page 38.</p>`,
+      `<h2>POSTED BOUNTIES</h2><p>-Capture individuals listed here for reward and reputation.-</p>`,
+      `<h2>Bounty for Yaki Soba</h2><p>Wanted for: Killing an innocent civillian through reckless behavior with a firearm and fleeing the scene. <br> Last known location: The City <br> Technique: Blazing Courage <br> Grade: 4 <br> Threat Level: ★ ☆ ☆ ☆ ☆</p>
+       <img src="npcs/Screenshot_1.png" alt="NPC Screenshot" style="width:50%; margin-top:10px;">`
+    ];
+
+    function renderPages() {
+      document.getElementById('leftPage').innerHTML = pages[currentPageIndex] || '';
+      document.getElementById('rightPage').innerHTML = pages[currentPageIndex + 1] || '';
+      document.getElementById('navIndicator').textContent = `Page ${currentPageIndex + 1}–${Math.min(currentPageIndex + 2, totalPages)}`;
+    }
+
+    function flipPage(direction) {
+      if (direction === 'next' && currentPageIndex + 2 < totalPages) {
+        currentPageIndex += 2;
+      } else if (direction === 'prev' && currentPageIndex > 0) {
+        currentPageIndex -= 2;
+      }
+      renderPages();
+    }
+
+    function goToPage(index) {
+      currentPageIndex = index;
+      renderPages();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight') flipPage('next');
+      if (e.key === 'ArrowLeft') flipPage('prev');
+    });
+
+    renderPages();
+  </script>
+
+</body>
+</html>
